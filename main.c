@@ -3,140 +3,105 @@
 #include <stdio.h>
 #include <RTL.h>
 #include <stdint.h>
-#include "GLCD.h"
 #include <math.h>
+#include "timer.h"
+#include "GLCD.h"
 #include "background.c"
+#include "car1.c"
+#include "car2.c"
+#include "canister.c"
+#include "finish_line.c"
+
+/* MACROS */
 #define MAPWIDTH 320
 #define MAPHEIGHT 240
-#define CARWIDTH 18
-#define CARHEIGHT 32
-#define PATHSIZE 780
-#define MAXCANS 5
+#define PATHSIZE 800
+#define MAXCANS 3
+#define CANWIDTH 9
+#define CANHEIGHT 12
+#define OUTTRACKMINX 10
+#define OUTTRACKMINY 10
+#define OUTTRACKMAXX 310
+#define OUTTRACKMAXY 230
+#define INTRACKMINX 70
+#define INTRACKMINY 70
+#define INTRACKMAXX 250
+#define INTRACKMAXY 170
 // Q:\eng\ece\util\find-com
 
-// CONSTANTS //
-uint8_t screenWidth = 10;
-uint8_t screenHeight = 10;
-uint8_t screenBottomX = 0;
-uint8_t screenBottomY = 0;
-//int map[MAPWIDTH][MAPHEIGHT] = { 0 };
-int path[PATHSIZE][2] = { 0 };
-
-static const unsigned char CAR1_pixel_data[18 * 32 * 3 + 1] =
-("MkMkMkMk,c\313Z\313Z\313Z\313Z\313Z\313Z\313Z,cMkMkMkMkMkMkMk,c\212R\206)"
- "\306\020\305\020\305\020\305\020\305\020\245\020\006\031\247\061\313ZMkMkMkMkMk,ciJ"
- "'\031J\031\254!\214!\214!\214!\214!\214!\214!)\031G!\252R,cMkMk,c)B\312\061\314"
- ")\253)\211)H\031H\031H\031H\031\007\031H\031\253!\253)\312\061\252RMkMk,cF!\314)\312"
- "\061mB\062S\362J\362J\362J\322B\221B\016\062i\031I!\212!\347\071MkMk,c\004!\014:\360"
- "J\063S\362J\362J\362J\362J\362J\022K\322Bq:\254!H\031\307\071MkMk,cf)\360RSS\362"
- "J\362J\362J\362J\362J\362J\362J\362J\322BP\062\213!\307\071MkMk,cf)\021S\063S"
- "\362J\362J\362J\362J\362J\362J\362J\362J\362J\221:\254!\307\071MkMk,cf)\021"
- "S\063S\362J\362J\362J\362J\362J\362J\362J\362J\362Jq:\254!\307\071MkMk,cf)\021"
- "S\063S\322B\321B\217:o:o:n:\220:\321B\362J\221:\254!\307\071MkMk,cf)\320J\320"
- "Jn\062\215\062.\063n\063n\063n\063\016\063m\062N\062\016\062k!\307\071MkMk,c%!\311).;r"
- "L\024M\034o\377w\337w\377w\333f\363L\257\063L\"\346\020\307\071MkMk,c\343\030\010"
- "\032\232n\377\227\377\177\377\177\377\177\377\177\377\177\377\177\377\177<"
- "W\226=D\011\206\061MkMkjJ\304\020\212\"\276\207\377\267\377\207\377w\377\177"
- "\377\177\377\177\377\177\377w\276_\272N\246\021%!\252RMk\247\061g\031\252\"\226"
- "]\337\227<\207\327U\064M\065M\024M\030^<g\235Wq\064I\"G\031\307\071MkjJ\350)QL\357"
- ";\364T\320K\215\062\013*,*\013*\315\062\217\063\323\064\256+\060L\307)\212RMk,c("
- "\062\030\206\257Km:N:\260B\322J\322J\362J\220:\314)\211\031QT\226}(:MkMk,c(\062"
- "\272~\260S\260J\063S\362J\362J\362J\362J\362J\322BJ!\061\\\027vIBMkMk,c(*\064"
- "M\255:\022S\362J\362J\362J\362J\362J\362J\362J\016\062l*\363LI:MkMk,ce!\354*"
- "\312\061TS\362J\362J\362J\362J\362J\362J\362J\261B\007\021\313*\347\071MkMk,c\246"
- "!M\063\313\061\063S\362J\362J\362J\362J\362J\362J\362J\262B'\031-+\010:MkMk,c\010"
- "\062Q\\\353\061\023K\362J\362J\362J\362J\362J\362J\362J\261Bh!Q\\(BMkMk,c\010"
- "\062\222\\\353\061\063S\362J\362J\362J\362J\362J\362J\362J\261BH\031r\\(BMkMk"
- ",c\010*qD\013:T[\362J\362J\362J\362J\362J\362J\362J\261Bi\031QDI:MkMk,cE!\355"
- ":\353\061\021S\023S\362J\362J\362J\362J\362J\362J\015\062\007\031k*\347\071MkMk,cF"
- ")\216B,:\360Rt[\022K\362J\362J\362J\322B\262B\212!I\031j!\307\071MkMk,cf)L:\345"
- "\030g!\312)o:\321B\321B\322B.\062H\031\244\010\245\010I\031\307\071MkMk,cF)\013:\211"
- ")\257J-:\252)i!i!i!\253)-\062\314)\346\020(\031\307\071MkMk,cF)\013:\353\061s[\362"
- "J\321B\321B\321B\321B\322J\322BP\062\007\021(\031\307\071MkMk,cF)\014:\353\061t[\022"
- "K\362J\362J\362J\362J\362J\322BP\062\007\021(\031\307\071MkMk,c\010:\251)\013:R[\063"
- "S\362J\362J\362J\261B\221:p:\315)(\031\007\031IJMkMkMk\014c\307\061%!g!\210)g!G"
- "!G!&\031\006\031\006\031\304\020\345\030\350\071,cMkMk");
-
-static const unsigned char CAR2_pixel_data[18 * 32 * 4 + 1] =
-("MkMkMky\316\060\214EQa\070a\070a\070a\070a\070a\070EQ\060\214y\316MkMkMkMkMk\232\326"
- "\312\202\003q\002\231\002\241\002\241\002\241\002\241\002\241\002\241\002\231\342p\212z\232"
- "\326MkMkMk\232\326\215\243\345\221\006\222\204q\342P\302P\302P\302P\302PaH\241"
- "`#\201\302\200\353\212\232\326MkMk\020\214\305\201\346y\006z\310\272&\302\304"
- "\271\304\271\304\271\204\261\342\240@\200\040X\201`\241h\357\203MkMk\256s\245"
- "i\210\242\310\322F\312\345\311\345\311\345\311\345\311\345\311\345\311C\261"
- "a\230\000paP\216sMkMk\357\203G\222\351\322\345\311\345\311\345\311\345\311\345"
- "\311\345\311\345\311\345\311\345\311C\261@\230\000`\216{MkMk\357\203\250\252"
- "\351\322\345\311\345\311\345\311\345\311\345\311\345\311\345\311\345\311\345"
- "\311\345\311\302\240\000p\216{MkMk\357\203\250\252\351\322\345\311\345\311\345"
- "\311\345\311\345\311\345\311\345\311\345\311\345\311\345\311\302\240\000p\216"
- "{MkMk\357\203\250\252\351\322\345\311\345\311\345\301\304\301\304\301\304"
- "\301\304\301\345\301\345\311\345\311\302\240\000p\216{MkMk\357\203\250\252\351"
- "\322\304\261\244\251\245y\246I\246I\246I\246I\305y\244\251\244\251\241\240"
- "\000p\216{MkMk\317\203\305iG\212\352b\013C\064U\034o\034o\034o\034o\064U\013C\010J\040"
- "`\000H\216{MkMk\256s\004\021qD\333v\337w\377w\377\177\377\177\377\177\377\177\377"
- "w\277wyN\020\064\343\010\216sMk\060\204\313Ze\021]w\337\257\377\217\377\177\377"
- "\177\377\177\377\177\377\177\377\177\337w}W\333Ne\021\313Z\262\224,{\003Y$!\065"
- "U\337\247\337\247\337w\276w\276w\276w\276w\277w\276o]W\363\064$!\003YL{\256{"
- "\306QL;\317;\373n\272~\221TiBiBiBiBqTyVyN\216+,;\246Q\317\203Mk\317s\024mQ"
- "DL[\007Z\345\211\304\261\304\261\304\261\304\261Cy\303\070(:\020<\024m\317sMkM"
- "k\020|\030\216\323lG\222\011\323&\312\345\311\345\311\345\311\345\311\204\271"
- "\002\251\040`\262l\030\216\020|MkMk\020|\367]\357[h\242f\312\345\311\345\311\345"
- "\311\345\311\345\311\345\311\244\301@pmS\367]\020|MkMk\020|qDHbJ\323&\312\345"
- "\311\345\311\345\311\345\311\345\311\345\311\304\301\302\240\343HqD\020|Mk"
- "Mk\256s\252*dY\250\322\345\311\345\311\345\311\345\311\345\311\345\311\345"
- "\311\345\311C\261\000\070\252*\216sMkMk\020|\020<\007bg\312\345\311\345\311\345\311"
- "\345\311\345\311\345\311\345\311\345\311C\261\242@\020D\020|MkMk\020\204\262"
- "l\007jg\312\345\311\345\311\345\311\345\311\345\311\345\311\345\311\345\311"
- "C\261\242H\262l\020\204MkMk\020|\262\\\007b\310\322\345\311\345\311\345\311\345"
- "\311\345\311\345\311\345\311\345\311C\261\242@\262\\\020|MkMk\020|QD'jJ\323"
- "&\312\345\311\345\311\345\311\345\311\345\311\345\311\345\311#\261\242HQD"
- "\020|MkMk\256s\211Z\245i\210\242\310\322\345\311\345\311\345\311\345\311\345"
- "\311\345\311\244\301\201x\000HeA\216sMkMk\357\203h\232'\202G\212*\323F\312\345"
- "\311\345\311\345\311\345\311\204\271\002\251\040`\000X\000`\216{MkMk\357\203G\212"
- "#A$Ida\204\211\244\261\244\261\244\261\244\261\002y@H\000\060\000(\000X\216{MkMk\357"
- "\203\006\202\205a\351\272\345\261C\201\302X\302X\302X\302XC\201c\241@\200\000"
- "@\000P\216{MkMk\357\203\006\202\245iJ\323&\312\345\301\344\301\344\301\344\301"
- "\344\301\345\301\244\301@\220\000@\000P\216{MkMk\357\203\006\202\245iJ\323g\312"
- "\345\311\345\311\345\311\345\311\345\311\345\311c\271@\220\000@\000P\216{MkMk"
- "\226\265Hr\306q\351\262\011\323&\312\345\301\345\301\304\301C\261\002\251\201"
- "\230\000xaX\004YU\265MkMkMk\060\214E\071\343\060DI\343@\242@\242@\242@!\060\040\060"
- "\000\060\000\040\004\071\060\214MkMk");
- 
+// Car struct - Holds position and orientation of cars in the game
 typedef struct{
 	uint32_t x;
 	uint32_t y;
 	int angle;
 	int speed;
+	uint8_t height;
+	uint8_t width;
 	uint8_t lap;
+	uint8_t orientation;
+	unsigned char * image;
 } Car;
 
+// Player struct - Holds data for player in game
 typedef struct{
 	uint8_t canisters;
 	Car* car;
 } Player;
 
+// Canister struct - Holds data for powerup canisters in game
 typedef struct{
-	uint8_t collected;
-	uint8_t time;
 	uint32_t x;
 	uint32_t y;
+	uint8_t collected;
 } Canister;
 
+// GLOBALS // 
+int path[PATHSIZE][2] = { 0 };
+uint8_t CARWIDTH = 13;
+uint8_t CARHEIGHT = 25;
 Car* CPU;
 Player* player;
-OS_MUT steer;
 Canister* cans[MAXCANS];
 
-Car* makeCar(uint32_t x, uint32_t y, int angle, int speed, uint8_t lap) {
+// SEMAPHORES //
+OS_MUT cpuMut;
+OS_MUT playerSpdMut;
+OS_MUT playerPosMut;
+OS_MUT playerAngMut;
+OS_MUT canMut;
+
+// Function to allocate memory space for a car and initialize its values
+Car* makeCar(uint32_t x, uint32_t y, int angle, int speed, uint8_t height, uint8_t width, unsigned char * image, uint8_t lap, uint8_t orientation) {
 	Car* car = malloc(sizeof(Car));
 	car->x = x;
 	car->y = y;
 	car->angle = angle;
 	car->speed = speed;
+	car->height = height;
+	car->width = width;
 	car->lap = lap;
+	car->orientation = orientation;
+	car->image = image;
 	return car;
 }
 
+// Rounds a decimal value to an integer and returns it
+int round2Int(float n) {
+	if(n >= 0) {
+		// If the decimal portion of the number is less than .5, then rounds down
+		if( (int)n + 0.5 > n ) return (int)n;
+		// Otherwise round up
+		else return (int)n + 1;
+	}
+	else {
+		// If the decimal portion of the number is less than .5, then rounds down
+		if( (int)n - 0.5 < n ) return (int)n;
+		// Otherwise round up
+		else return (int)n - 1;
+	}
+}
+
+// Function to display an integer number in binary on the LEDs
 void setLeds(uint8_t litNum) {
 	int i;
 	uint32_t gpio1Val = 0, gpio2Val = 0;
@@ -144,114 +109,279 @@ void setLeds(uint8_t litNum) {
 	LPC_GPIO1->FIOCLR |= 0xB0000000;
 	LPC_GPIO2->FIOCLR |= 0x0000007C;
 	
+	// Checks which bits in GPIO1 should be on for the number by checking if the number at each bit is divisible by 2 or there is a remainder(indicating LED on)
 	if(litNum%2)
 		gpio1Val += pow(2,28);
 	litNum = litNum >> 1;
-	
 	if(litNum%2)
 		gpio1Val += pow(2,29);
 	litNum = litNum >> 1;
-	
 	if(litNum%2)
 		gpio1Val += pow(2,31);
 	litNum = litNum >> 1;
-			
+	
+	// Checks which bits in GPIO2 should be on for the number the same way as for GPIO1
 	for(i = 0; i < 5; i++) {
 		if(litNum%2) {
-			// printf("%i, gpio 2 val being changed\n",gpio2Val);
 			gpio2Val += pow(2,i+2);
 		}	
 		litNum = litNum >> 1;
 	}
-			
+	
+	// Sets all bits in GPIO1 and GPIO2 that should be turned on for the number to be displayed correctly
 	LPC_GPIO1->FIOSET |= gpio1Val;
 	LPC_GPIO2->FIOSET |= gpio2Val;
 }
 
-void initCanisters(void){ 
-	int i;
-	for(i=0;i<MAXCANS;i++){
-		cans[i] = malloc(sizeof(Canister));
-		cans[i]->x = 100;
-		cans[i]->y = 100;
-		cans[i]->collected = 1;
-		cans[i]->time = 0; 
-	}		
-}
-
+// Create an array of positions in the centre of the track
 void populatePath(void){
-	//start w rectangle
-	int i=0, j, k;
-	for(j=0;j<240;j++){
-		path[i][0] = 40 + j;
-		path[i][1] = 30;
+	int i=0, j;
+	int midDist = (INTRACKMINX-OUTTRACKMINX)/2;
+	int jx1 = OUTTRACKMINX + midDist, jx2 = OUTTRACKMAXX - midDist;
+	int jy1 = OUTTRACKMINY + midDist, jy2 = OUTTRACKMAXY - midDist;
+	// Writes all points along the top x-directional portion of the track to the array
+	for(j = jx1; j < jx2; j++){
+		path[i][0] = j - (CARWIDTH/2);
+		path[i][1] = OUTTRACKMINY + midDist - (CARHEIGHT/2);
 		i++;
 	}
-	for(j=0;j<150;j++){
-		path[i][0] = 280;
-		path[i][1] = 30 + j;
+	// Writes all points along the right y-directional portion of the track to the array
+	for(j = jy1; j < jy2; j++){
+		path[i][0] = OUTTRACKMAXX - midDist - (CARWIDTH/2);
+		path[i][1] = j - (CARHEIGHT/2);
 		i++;
 	}
-	for(j=0;j<240;j++){
-		path[i][0] = 280 - j;
-		path[i][1] = 180;
+	// Writes all points along the bottom x-directional portion of the track to the array
+	for(j = jx2; j > jx1; j--){
+		path[i][0] = j - (CARWIDTH/2);
+		path[i][1] = OUTTRACKMAXY - midDist - (CARHEIGHT/2);
 		i++;
 	}
-	for(j=0;j<150;j++){
-		path[i][0] = 40;
-		path[i][1] = 180 - j;
+	// Writes all points along the left y-directional portion of the track to the array
+	for(j = jy2; j > jy1; j--){
+		path[i][0] = OUTTRACKMINX + midDist - (CARWIDTH/2);
+		path[i][1] = j - (CARHEIGHT/2);
 		i++;
 	}
-	/*
-	for(i=0;i<PATHSIZE;i++){
-		for(j=-2;j<=2;j++){
-			for(k=-2;k<=2;k++){
-				map[path[i][0] + j][path[i][1] + k] = 1;
-			}
-		}
-	}*/
 }
 
+// Draws an unfilled rectangle at the positions specified
+void drawRectangle( int xMin, int yMin, int xMax, int yMax ){
+	int i;
+	// Draws the horizontal lines of the rectangle
+	for(i=xMin;i<xMax;i++){
+		GLCD_PutPixel(i,yMin);
+		GLCD_PutPixel(i,yMax);
+	}
+	// Draws the vertical lines of the rectangle
+	for(i=yMin;i<yMax;i++){
+		GLCD_PutPixel(xMin,i);
+		GLCD_PutPixel(xMax,i);
+	}
+}
+
+// Draws a car based on its orientation
+void drawCar( Car* car ){
+	// Checks for the angle of the car and then calls the right function to read the bitmap array correctly
+	if(car->orientation == 1){
+		GLCD_Bitmap_Sideways_Flipped(car->x,car->y,car->width, car->height, car->image);
+	}
+	else if(car->orientation == 0){
+		GLCD_Bitmap_Flipped(car->x,car->y,car->width, car->height, car->image);
+	}
+	else if(car->orientation == 2){
+		GLCD_Bitmap(car->x,car->y,car->width, car->height, car->image);
+	}
+	else{
+		GLCD_Bitmap_Sideways(car->x,car->y,car->width, car->height, car->image);
+	}
+}
+
+// Handle the canister powerups
 __task void CanisterTask(void){
-	int i, randNum, numCans = 0;
+	int i, randNum;
+	// Set a new seed based on the initial value of the potentiometer(unknown) to avoid the same seed causing identical spawns each time
 	srand(player->car->angle);
+	
+	// Initialize the canisters to random positions on the track
+	for(i=0;i<MAXCANS;i++){
+		// Protect canister data
+		os_mut_wait(&canMut,0xffff);
+		
+		cans[i] = malloc(sizeof(Canister));
+		randNum = rand() % PATHSIZE;
+		cans[i]->x = path[randNum][0];
+		cans[i]->y = path[randNum][1];
+		cans[i]->collected = 0;
+		
+		//Release canister data
+		os_mut_release(&canMut);
+	}
+	
 	while(1){
-		for(i=0;i<MAXCANS;i++){
-			if(cans[i]->collected == 1){
+		// Protect canister data
+		os_mut_wait(&canMut,0xffff);
+		
+		// Iterate through each canister to check whether they have been picked up by the player
+		for(i=0;i<MAXCANS;i++){	
+			// If the canister is currently not collected by the player and is on the map, check if the player is picking it up
+			if(!cans[i]->collected){
+				// Protect player dimension data
+				os_mut_wait(&playerPosMut, 0xffff);
+				
+				// Check for collision with player
+				if(cans[i]->x + CANWIDTH >= player->car->x && cans[i]->x <= player->car->x + player->car->width &&  cans[i]->y + CANHEIGHT >= player->car->y && cans[i]->y <= player->car->y + player->car->height ){
+					// If the player does not have the maximum amount of canisters, add to their total when they pick the new one up
+					if( player->canisters < 8 ) player->canisters++;
+					cans[i]->collected = 1;
+				}
+				
+				// Release player dimension data
+				os_mut_release(&playerPosMut);
+			}
+			// If the canister has been collected by the player previously, set a new x and y position to respawn it somewhere else as uncollected
+			else{
 				randNum = rand() % PATHSIZE;
 				cans[i]->x = path[randNum][0];
-				cans[i]->y = path[randNum][1];;
-				cans[i]->collected =0;
+				cans[i]->y = path[randNum][1];
+				cans[i]->collected = 0;
 			}
 		}
+		// Print out the amount of canisters the player currently has
+		setLeds(pow(2, player->canisters)-1);
+		
+		//Release canister data
+		os_mut_release(&canMut);
+		
 		os_tsk_pass();
 	}
 }
 
+// Draw all graphics to LCD screen
 __task void DrawTask(void){
-	int i, xPlayerPrev = player->car->x, yPlayerPrev = player->car->y, xCPUPrev = CPU->x, yCPUPrev = CPU->y;
+	int i, j, xPlayerPrev = player->car->x, yPlayerPrev = player->car->y, xCPUPrev = CPU->x, yCPUPrev = CPU->y;
+	int playerHeightPrev = player->car->height, playerWidthPrev = player->car->width, CPUHeightPrev = CPU->height, CPUWidthPrev = CPU->width;
+	char playerLap[25];
+	char cpuLap[25];
+	
 	GLCD_SetTextColor(0xFFE0);
-	GLCD_SetBackColor(0X001F);
-	GLCD_Clear(0xFFFF);
-	for(i=0;i<PATHSIZE;i++){
-		GLCD_Bitmap(path[i][0],path[i][1], 40, 30, (unsigned char *)&GIMP_IMAGE_pixel_data);
+	GLCD_Clear(0x07E0);
+
+	// Drawing the boundary of the track
+	drawRectangle(OUTTRACKMINX-1,OUTTRACKMINY-1,OUTTRACKMAXX+1,OUTTRACKMAXY+1);
+	drawRectangle(INTRACKMINX+1,INTRACKMINY+1,INTRACKMAXX-1,INTRACKMAXY-1);
+	
+	// Colour the whole track grey with a bitmap to be faster than colouring each individual pixel
+	// Colours the horizontal lines of the track
+	for(i = OUTTRACKMINX; i < OUTTRACKMAXX; i += 10) {
+		for(j = OUTTRACKMINY; j < INTRACKMINY; j += 10) {
+			GLCD_Bitmap(i, j, 10, 10, (unsigned char *)&BACKGROUND_pixel_data);
+		}	
+		for(j = INTRACKMAXY; j < OUTTRACKMAXY; j += 10) {
+			GLCD_Bitmap(i, j, 10, 10, (unsigned char *)&BACKGROUND_pixel_data);
+		}	
 	}
-	while(1){
-		GLCD_Bitmap(xPlayerPrev,yPlayerPrev, 40, 30, (unsigned char *)&GIMP_IMAGE_pixel_data);
-		GLCD_Bitmap(xCPUPrev,yCPUPrev, 40, 30, (unsigned char *)&GIMP_IMAGE_pixel_data);
-		GLCD_Bitmap(player->car->x,player->car->y,CARWIDTH,CARHEIGHT, (unsigned char *)&CAR1_pixel_data);
-		GLCD_Bitmap(CPU->x,CPU->y,CARWIDTH,CARHEIGHT, (unsigned char *)&CAR2_pixel_data);
-		for(i=0;i<MAXCANS;i++){
-			GLCD_Bitmap(cans[i]->x,cans[i]->y, 25, 18, (unsigned char *)&CAR2_pixel_data);
+	// Colours the vertical lines of the track
+	for(j = INTRACKMINY; j < INTRACKMAXY; j += 10) {
+		for(i = OUTTRACKMINX; i < INTRACKMINX; i += 10) {
+			GLCD_Bitmap(i, j, 10, 10, (unsigned char *)&BACKGROUND_pixel_data);
 		}
+		for(i = INTRACKMAXX; i < OUTTRACKMAXX; i += 10) {
+			GLCD_Bitmap(i, j, 10, 10, (unsigned char *)&BACKGROUND_pixel_data);
+		}
+	}
+	// Draw text as black
+	GLCD_SetTextColor(0x0000);
+	GLCD_SetBackColor(0xFFE0);
+	
+	while(1){
+		// Cover the previous position of the player and the CPU with grey so that the track appears unchanged once a car moves off of it
+		GLCD_Bitmap(xPlayerPrev,yPlayerPrev, playerWidthPrev, playerHeightPrev, (unsigned char *)&BACKGROUND_pixel_data);
+		GLCD_Bitmap(xCPUPrev,yCPUPrev, CPUWidthPrev, CPUHeightPrev, (unsigned char *)&BACKGROUND_pixel_data);
+		
+		//Draw the finish line
+		for(i = 0; i < 15; i++){
+			GLCD_Bitmap(156, OUTTRACKMINY + 4*i, 8, 4, (unsigned char *)&FINISH_LINE_pixel_data);
+		}
+		
+		// Draw the canisters on the track
+		for(i=0;i<MAXCANS;i++){
+			// Protect canister data
+			os_mut_wait(&canMut,0xffff);
+			
+			// If the canister has been collected, then recolour the track grey where it used to be
+			if(cans[i]->collected){
+				GLCD_Bitmap(cans[i]->x,cans[i]->y, CANWIDTH, CANHEIGHT, (unsigned char *)&BACKGROUND_pixel_data);
+			}
+			// If the canister has not been collected, then draw the canister image at its location
+			else{
+				GLCD_Bitmap(cans[i]->x,cans[i]->y, CANWIDTH, CANHEIGHT, (unsigned char *)&CANISTER_pixel_data);
+			}
+			
+			//Release canister data
+			os_mut_release(&canMut);
+		}
+		
+		// If the player has passed 5 laps then display the win screen
+		if( ( player->car->lap - 1 )/4 == 5 ){
+			GLCD_Clear(0x0000);
+			GLCD_SetTextColor(0xFFFF);
+			GLCD_SetBackColor(0x0000);
+			while(1){
+				GLCD_DisplayString(15, 21, 0, "YOU WIN!");
+			}
+		}
+		
+		// Overwrite and display the player lap text with the current lap they are on
+    sprintf(playerLap, "PLAYER LAP: %i/5", (player->car->lap - 1)/4);
+		GLCD_DisplayString(14, 20, 0, playerLap);
+		
+		// Draw the player at its current position and store its data to use in the next iteration
+		
+		// Protect player dimension data
+		os_mut_wait(&playerPosMut, 0xffff);
+		
+		drawCar(player->car);		
 		xPlayerPrev = player->car->x;
 		yPlayerPrev = player->car->y;
+		playerHeightPrev = player->car->height;
+		playerWidthPrev = player->car->width;
+		
+		// Release player dimension data
+		os_mut_release(&playerPosMut);
+		
+		// Wait if the CPU's values are being updated by another task
+		os_mut_wait(&cpuMut, 0xFFFF);
+		
+		// If the CPU has passed 5 laps before the player display the lose screen
+		if( ( CPU->lap - 1 )/4 == 5 ){
+			GLCD_Clear(0x0000);
+			GLCD_SetTextColor(0xFFFF);
+			GLCD_SetBackColor(0x0000);
+			while(1){
+				GLCD_DisplayString(15, 20, 0, "YOU LOSE...");
+			}
+		}
+		
+		// Overwrite and display the CPU lap text with the current lap it is on
+		sprintf(cpuLap,    "CPU LAP:    %i/5", (CPU->lap - 1)/4);
+		GLCD_DisplayString(15, 20, 0, cpuLap);
+			
+		// Draw the CPU at its current position and store its data to use in the next iteration
+		drawCar(CPU);
 		xCPUPrev = CPU->x;
 		yCPUPrev = CPU->y;
+		CPUHeightPrev = CPU->height;
+		CPUWidthPrev = CPU->width;
+		
+		// Release CPU mutex
+		os_mut_release(&cpuMut);
+
 		os_tsk_pass(); 
 	}
 }
 
+// Reads the potentiometer values and sets them to the player angle
 __task void ReadPotentiometerTask(void) {
 	LPC_PINCON->PINSEL1 &= ~(0x03<<18);
 	LPC_PINCON->PINSEL1 |= (0x01<<18);
@@ -262,63 +392,195 @@ __task void ReadPotentiometerTask(void) {
 		LPC_ADC->ADCR |= (0x01<<24);
 		while(!(LPC_ADC->ADGDR & (unsigned int)0x01<<31));
 		
-		// divide number of possible direction settings by 10 to avoid too much directional noise
-		player->car->angle = (int)(((LPC_ADC->ADGDR & 0x0000FFF0) >> 4) - 2048)*36/2048;
-		player->car->angle *= 10;
+		// Protect player angle data
+		os_mut_wait(&playerAngMut, 0xffff);
+		
+		// Convert angle to a value between -180 to +180 degrees
+		player->car->angle = (int)(((LPC_ADC->ADGDR & 0x0000FFF0) >> 4) - 2048)*180/2048;
+		
+		// Release player angle data
+		os_mut_release(&playerAngMut);
+		
 		os_tsk_pass();
 	}
 }
 
+// Task to move all players in the game, including CPU
 __task void MovePlayersTask(void){
-	int newX, newY;
-	int i = 40, j = 30;
-	CPU->y = j;
-	CPU->x = i;
+	int newX, newY, newCPUX, newCPUY, newWidth, newHeight, newCPUWidth, newCPUHeight, newOrientation, newCPUOrientation;
+	// The new location for the player and CPU will be calculated, and they will only be moved to the new positions if they are not moving into a collision
 	while(1){
-		/*
-		if( map[player->car->x][player->car->y] == 0 ){
-			player->car->speed = 1;
+		// PLAYER MOVEMENT //
+		
+		// Protect speed from updating while moving
+		os_mut_wait(&playerSpdMut, 0xffff);
+		
+		// Protect player angle data
+		os_mut_wait(&playerAngMut, 0xffff);
+		
+		// The player moves forward based on their speed and angle
+		newX = player->car->x + player->car->speed*round2Int(cos(player->car->angle * 3.14/180));
+		newY = player->car->y + player->car->speed*round2Int(sin(player->car->angle * 3.14/180));
+		
+		// Release speed data
+		os_mut_release(&playerSpdMut);
+		
+		// Turn the player car depending on the angle their car is at
+		if((player->car->angle >= -45 && player->car->angle < 45) || player->car->angle > 135 || player->car->angle< -135){
+			newHeight = CARWIDTH;
+			newWidth = CARHEIGHT;
+			if( player->car->angle < 45 && player->car->angle >= -45 ) newOrientation = 1;
+			else newOrientation = 3;
 		}
 		else{
-			player->car->speed = 3;
-		}*/
-		newX = player->car->x + player->car->speed*cos(player->car->angle * 3.14/180);
-		newY = player->car->y + player->car->speed*sin(player->car->angle * 3.14/180);
-		// Check for collision with wall or CPU car in either direction
-		if(!( newX + CARWIDTH >= CPU->x && newX <= CPU->x + CARWIDTH &&  newY + CARHEIGHT >= CPU->y && newY <= CPU->y + CARHEIGHT )){
-			if( newX >= 0 && newX <= (MAPWIDTH-CARWIDTH) && newY >= 0 && newY <= (MAPHEIGHT-CARHEIGHT) ){
-				player->car->x = newX;
-				player->car->y = newY;
+			newHeight = CARHEIGHT;
+			newWidth = CARWIDTH;
+			if( player->car->angle < 135 && player->car->angle >= 45 ) newOrientation = 0;
+			else newOrientation = 2;
+		}
+		
+		// Release player angle data
+		os_mut_release(&playerAngMut);
+		
+		// Check for collision with CPU car
+		if(!( newX + newWidth >= CPU->x && newX <= CPU->x + CPU->width &&  newY + newHeight >= CPU->y && newY <= CPU->y + CPU->height )){
+			// Check for collision with outer walls
+			if( newX >= OUTTRACKMINX && newX <= OUTTRACKMAXX - newWidth && newY >= OUTTRACKMINY && newY <= OUTTRACKMAXY - newHeight ){
+				// Check for collision with the inner walls
+				if( !( newX + newWidth >= INTRACKMINX && newX <= INTRACKMAXX &&  newY + newHeight >= INTRACKMINY && newY <= INTRACKMAXY ) ){
+					// If no collision will occur at the new x and y position, update the player's position
+					
+					// Protect player dimension data
+					os_mut_wait(&playerPosMut, 0xffff);
+					
+					player->car->x = newX;
+					player->car->y = newY;
+					player->car->height = newHeight;
+					player->car->width = newWidth;
+					player->car->orientation = newOrientation;
+					
+					// Release player dimension data
+					os_mut_release(&playerPosMut);
+				}
 			}
 		}
-		if(CPU->y <= 30 && CPU->x < 280) CPU->x += CPU->speed;
-		else if(CPU->x >= 280 && CPU->y < 180) CPU->y += CPU->speed;
-		else if(CPU->y >= 180 && CPU->x > 40) CPU->x -= CPU->speed;
-		else if(CPU->x <= 40 && CPU->y > 30) CPU->y -= CPU->speed;
-
-		// MODULO BY SCREEN SIZE SO THE PLAYER FITS IN THE SCREEN
-		setLeds(player->car->lap);
+		
+		// Increment the player lap if they have passed the correct checkpoint on the track
+		if(( player->car->lap%4 == 0 && player->car->x > 160 ) || ( player->car->lap%4 == 1 && player->car->y > 120 ) || 
+			( player->car->lap%4 == 2 && player->car->x < 160 ) || ( player->car->lap%4 == 3 && player->car->y < 120 )) {
+			player->car->lap++;
+		}
+		
+		// CPU MOVEMENT //
+		// Move the CPU along a straight line in each direction to follow the track. Changes the CPU car angle depending on the direction it is moving in
+		if(CPU->y <= 40 && CPU->x < 270){
+			newCPUX = CPU->x + CPU->speed;
+			newCPUY = CPU->y;
+			newCPUOrientation = 1;
+			CPU->angle = 0;
+		}
+		else if(CPU->x >= 270 && CPU->y < 195){
+			newCPUY = CPU->y + CPU->speed;
+			newCPUX = CPU->x;
+			newCPUOrientation = 0;
+			CPU->angle = 90;
+		}
+		else if(CPU->y >= 195 && CPU->x > 40){
+			newCPUX = CPU->x - CPU->speed;
+			newCPUY = CPU->y;
+			newCPUOrientation = 3;
+			CPU->angle = 180;
+		}
+		else if(CPU->x <= 40 && CPU->y > 40){
+			newCPUY = CPU->y - CPU->speed;
+			newCPUX = CPU->x;
+			newCPUOrientation = 2;
+			CPU->angle = -90;
+		}
+		
+		// Change CPU data based on its current orientation
+		if((CPU->angle > -45 && CPU->angle < 45) || CPU->angle > 135 || CPU->angle < -135){
+			newCPUHeight = CARWIDTH;
+			newCPUWidth = CARHEIGHT;
+		}
+		else{
+			newCPUHeight = CARHEIGHT;
+			newCPUWidth = CARWIDTH;
+		}
+		
+		// Protect CPU data from being read by DrawTask
+		os_mut_wait(&cpuMut, 0XFFFF);
+		
+		// Check whether the CPU will not be colliding with the player
+		if(!( newCPUX + newCPUWidth >= player->car->x && newCPUX <= player->car->x + player->car->width &&  newCPUY + newCPUHeight >= player->car->y && newCPUY <= player->car->y + player->car->height )){
+			// If no collision occurs, then update the CPU position and orientation
+			CPU->x = newCPUX;
+			CPU->y = newCPUY;
+			CPU->height = newCPUHeight;
+			CPU->width = newCPUWidth;
+			CPU->orientation = newCPUOrientation;
+		}
+		
+		// Increment the CPU lap if they have passed the correct checkpoint on the track
+		if(( CPU->lap%4 == 0 && CPU->x > 160 ) || ( CPU->lap%4 == 1 && CPU->y > 120 ) || 
+			( CPU->lap%4 == 2 && CPU->x < 160 ) || ( CPU->lap%4 == 3 && CPU->y < 120 )) {
+			CPU->lap++;
+		}
+				
+		// Release mutex protecting CPU data
+		os_mut_release(&cpuMut);
+		
 		os_tsk_pass();
 	}
 }
-	
+
+// Task to check whether the player has used their boost powerup by pushing the button
 __task void PushButtonTask(void){
-	int boolBoostActive;
+	int boostActive = 0;
 	int buttonCurr;
+	uint32_t limit = 3;
+	uint32_t diff = 0;
+	uint32_t initial;
+	
+	// Store the previous state of the button to prevent the task continually reading a button push and only activating upon a change in button state
 	int buttonPrev = LPC_GPIO2->FIOPIN & (0x01 << 10);
-	LPC_GPIO1->FIODIR |= 0xB0000000;
-	LPC_GPIO2->FIODIR |= 0x0000007C;
+
 	while(1) {
 		buttonCurr = LPC_GPIO2->FIOPIN & (0x01 << 10);
+		// Check if the button is pressed and has not been registered as already pressed
 		if((buttonCurr != buttonPrev) && (buttonCurr & (0x01 << 10)) ) {
-			if( player->car->speed == 3 ) {
-				player->car->speed = 6;
+			//Protect canister data
+			os_mut_wait(&canMut, 0xffff);
+			
+			// If the player has a canister available, activates the boost and sets a new inital time the boost was activated
+			if( player->canisters > 0 ){
+				initial = timer_read()/1E6;
+				boostActive = 1;
+				player->canisters--;
 			}
-			else {
-				player->car->speed = 3;
-			}
-			player->car->lap++;
+			
+			//Release canister data
+			os_mut_release(&canMut);
 		}
+		// Calculates the time elapsed since the boost was activated
+		diff = (timer_read()/1E6 - initial);
+		
+		// If the boost is activated, increase the player speed
+		if(boostActive) {
+			// Protect speed data from being read while also being altered
+			os_mut_wait(&playerSpdMut, 0xffff);
+			
+			// If the boost time has elapsed, reset the player speed and deactivate the boost
+			if(diff > limit) {
+				player->car->speed = 2;
+				boostActive = 0;
+			}	
+			else player->car->speed = 4;
+			
+			// Release speed data
+			os_mut_release(&playerSpdMut);
+		}
+		// Store the button press state to use in the next iteration of the task
 		buttonPrev = buttonCurr;
 		os_tsk_pass();
 	}
@@ -326,7 +588,14 @@ __task void PushButtonTask(void){
 
 // Starts all tasks and initializes semaphores.
 __task void StartTasks(void){
-	// Create each task.
+	// Initialize semaphores
+	os_mut_init(&cpuMut);
+	os_mut_init(&playerSpdMut);
+	os_mut_init(&playerPosMut);
+	os_mut_init(&playerAngMut);
+	os_mut_init(&canMut);
+	
+	// Create each task
 	os_tsk_create(PushButtonTask,1);
 	os_tsk_create(ReadPotentiometerTask,1);
 	os_tsk_create(MovePlayersTask,1);
@@ -336,20 +605,29 @@ __task void StartTasks(void){
 	while(1);
 }
 
+// Main function called at start of program
 int main(void){
+	// Allocate data for the player and initialize their car and other values
 	player = malloc(sizeof(Player));
-	player->car = makeCar(5,5,0,3,0);
+	player->car = makeCar(160 - 2*CARWIDTH,20,90,2,CARWIDTH,CARHEIGHT,CAR1_pixel_data,0,1);
 	player->canisters = 0;
 	
-	CPU = makeCar(100,100,0,2,0);
-	GLCD_Init();
-	printf("Initialize Print \n");
+	// Initialize the CPU car values
+	CPU = makeCar(160 - 2*CARWIDTH,40,90,2,CARWIDTH,CARHEIGHT,CAR2_pixel_data,0,1);
 	
+	// Initialize LCD Screen
+	GLCD_Init();
+	
+	// Initalize bits to be input
 	LPC_GPIO1->FIODIR |= 0xB0000000;
 	LPC_GPIO2->FIODIR |= 0x0000007C;
 	
+	// Fill the path array
 	populatePath();
-	initCanisters();
+	
+	// Initalize timer 
+	timer_setup();
+	
 	// Start the tasks.
 	os_sys_init(StartTasks);
 }

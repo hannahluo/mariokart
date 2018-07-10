@@ -877,6 +877,53 @@ void GLCD_Bitmap (unsigned int x, unsigned int y, unsigned int w, unsigned int h
   wr_dat_stop();
 }
 
+void GLCD_Bitmap_Flipped (unsigned int x, unsigned int y, unsigned int w, unsigned int h, unsigned char *bitmap) {
+  int i, j;
+  unsigned short *bitmap_ptr = (unsigned short *)bitmap;
+
+  GLCD_SetWindow (x, y, w, h);
+
+  wr_cmd(0x22);
+  wr_dat_start();
+  for (i = 0; i <= (h-1)*w; i += w) {
+    for (j = 0; j < w; j++) {
+      wr_dat_only (bitmap_ptr[i+j]);
+    }
+  }
+  wr_dat_stop();
+}
+
+void GLCD_Bitmap_Sideways (unsigned int x, unsigned int y, unsigned int w, unsigned int h, unsigned char *bitmap) {
+  int i, j;
+  unsigned short *bitmap_ptr = (unsigned short *)bitmap;
+
+  GLCD_SetWindow (x, y, w, h);
+
+  wr_cmd(0x22);
+  wr_dat_start();
+  for (j = 0; j < h; j++) {
+    for (i = (w-1)*h; i > -1; i -= h) {
+      wr_dat_only (bitmap_ptr[i+j]);
+    }
+  }
+  wr_dat_stop();
+}
+
+void GLCD_Bitmap_Sideways_Flipped (unsigned int x, unsigned int y, unsigned int w, unsigned int h, unsigned char *bitmap) {
+  int i, j;
+  unsigned short *bitmap_ptr = (unsigned short *)bitmap;
+
+  GLCD_SetWindow (x, y, w, h);
+
+  wr_cmd(0x22);
+  wr_dat_start();
+  for (j = 0; j < h; j++) {
+		for (i = 0; i <= (w-1)*h; i += h) {
+      wr_dat_only (bitmap_ptr[i+j]);
+    }
+  }
+  wr_dat_stop();
+}
 
 
 /*******************************************************************************

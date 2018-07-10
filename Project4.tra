@@ -1,0 +1,36 @@
+*** Creating Trace Output File 'Project4.tra' Ok.
+### Preparing for ADS-LD.
+### Creating ADS-LD Command Line
+### List of Objects: adding '"startup_lpc17xx.o"'
+### List of Objects: adding '"system_lpc17xx.o"'
+### List of Objects: adding '"uart.o"'
+### List of Objects: adding '"timer.o"'
+### List of Objects: adding '"sensor_fusion.o"'
+### List of Objects: adding '"rtx_config.o"'
+### List of Objects: adding '"retarget.o"'
+### List of Objects: adding '"main.o"'
+### List of Objects: adding '"led.o"'
+### List of Objects: adding '"glcd_spi_lpc1700.o"'
+### List of Objects: adding '"glcd_scroll.o"'
+### List of Objects: adding '"ece_spi.o"'
+### List of Objects: adding '"background.o"'
+### List of Objects: adding '"car1.o"'
+### List of Objects: adding '"car2.o"'
+### List of Objects: adding '"canister.o"'
+### List of Objects: adding '"finish_line.o"'
+### ADS-LD Command completed:
+--cpu Cortex-M3 "startup_lpc17xx.o" "system_lpc17xx.o" "uart.o" "timer.o" "sensor_fusion.o" "rtx_config.o" "retarget.o" "main.o" "led.o" "glcd_spi_lpc1700.o" "glcd_scroll.o" "ece_spi.o" "background.o" "car1.o" "car2.o" "canister.o" "finish_line.o" 
+c:\Software\Keil\ARM\RV31\LIB\RTX_CM3.LIB --library_type=microlib --strict --scatter "Project4.sct" 
+--summary_stderr --info summarysizes --map --xref --callgraph --symbols 
+--info sizes --info totals --info unused --info veneers 
+ --list ".\Project4.map" -o Project4.axf### Preparing Environment (PrepEnvAds)
+### ADS-LD Output File: 'Project4.axf'
+### ADS-LD Command File: 'Project4.lnp'
+### Checking for dirty Components...
+### Creating CmdFile 'Project4.lnp', Handle=0x0000064C
+### Writing '.lnp' file
+### ADS-LD Command file 'Project4.lnp' is ready.
+### ADS-LD: About to start ADS-LD Thread.
+### ADS-LD: executed with 0 errors
+### Updating obj list
+### LDADS_file() completed.
